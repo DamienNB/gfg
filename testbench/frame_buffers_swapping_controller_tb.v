@@ -1,6 +1,6 @@
 `timescale 1 ns/100 ps
 
-module frame_buffer_swapping_controller_tb ();
+module frame_buffers_swapping_controller_tb ();
 
   reg i_clk = 0;
   reg i_srst_n = 1;
@@ -11,7 +11,7 @@ module frame_buffer_swapping_controller_tb ();
   wire o_new_frame;
   wire o_rasterization_target;
   
-  frame_buffer_swapping_controller UUT (
+  frame_buffers_swapping_controller UUT (
     .i_clk(i_clk),
     .i_srst_n(i_srst_n),
     .i_raster_in_progress(i_raster_in_progress),
@@ -168,7 +168,7 @@ module frame_buffer_swapping_controller_tb ();
   end
 
   initial begin
-    $dumpfile("frame_buffer_swapping_controller_tb.lxt");
+    $dumpfile("frame_buffers_swapping_controller_tb.lxt");
     $dumpvars(0,
               i_clk,i_srst_n,
               i_raster_in_progress,
