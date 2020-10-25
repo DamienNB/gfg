@@ -61,7 +61,6 @@ module top(
             VGA_VERT_RES     = 480,
             COLOR_DEPTH      =  12,
             Z_DEPTH          =   2,
-            NUM_RASTERIZERS  =   1,
             VIVADO_ENV       =   1;
 
   localparam FRAME_BUFFER_WIDTH = COLOR_DEPTH + Z_DEPTH;
@@ -122,7 +121,6 @@ module top(
     .HORIZ_RESOLUTION(VGA_HORIZ_RES),
     .COLOR_DEPTH     (COLOR_DEPTH),
     .Z_DEPTH         (Z_DEPTH),
-    .NUM_RASTERIZERS (NUM_RASTERIZERS),
     .VIVADO_ENV      (VIVADO_ENV)
   ) frame_buffers_datapath_inst (
   // general inputs
