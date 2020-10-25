@@ -163,7 +163,7 @@ module frame_buffers_datapath #(
         i_vga_horiz_read_addr;
 
   // frame buffer data output connections
-  assign o_vga_read_pixel_data = 
+  assign o_rasterizer_read_pixel_data = 
     (i_rasterization_target == 1'b0) ? 
       frame_buffer_0_data_out : 
       frame_buffer_1_data_out;

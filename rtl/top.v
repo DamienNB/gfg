@@ -47,13 +47,13 @@
 module top(
     input i_clk,
     input i_arst_n,
-    input [3:0] sw,
-    output vga_hs,
-    output vga_vs,
-    output [3:0] vga_red,
-    output [3:0] vga_green,
-    output [3:0] vga_blue,
-    output [3:0] led
+    input [3:0] o_sw,
+    output o_vga_hs,
+    output o_vga_vs,
+    output [3:0] o_vga_red,
+    output [3:0] o_vga_green,
+    output [3:0] o_vga_blue,
+    output [3:0] o_led
     );
   parameter HORIZ_RESOLUTION =  80,
             VERT_RESOLUTION  =  60,
@@ -70,7 +70,7 @@ module top(
   always @(posedge i_clk)
     srst_n <= i_arst_n;
 
-  assign led = 0;
+  assign o_led = 0;
 
   wire pixel_clk;
   wire pixel_clk_locked;
@@ -90,7 +90,8 @@ module top(
   );
 
   reg raster_in_progress = 0;
-  reg frame_buffer_swap_allowed = 0;
+
+  wire frame_buffer_swap_allowed;
 
   wire new_frame;
   wire rasterization_target;
@@ -104,10 +105,12 @@ module top(
     .o_rasterization_target(rasterization_target)
   );
 
-  reg [$clog2(VGA_VERT_RES)-1:0]  rasterizer_vert_write_addr  = 0;
-  reg [$clog2(VGA_HORIZ_RES)-1:0] rasterizer_horiz_write_addr = 0;
-  reg                             rasterizer_write_en         = 0;
-  reg [FRAME_BUFFER_WIDTH-1:0]    rasterizer_write_pixel_data = 0;
+  reg [$clog2(VERT_RESOLUTION)-1:0]  rasterizer_vert_write_addr  = 0;
+  reg [$clog2(HORIZ_RESOLUTION)-1:0] rasterizer_horiz_write_addr = 0;
+  reg                                rasterizer_write_en         = 0;
+  reg [FRAME_BUFFER_WIDTH-1:0]       rasterizer_write_pixel_data = 0;
+  reg [$clog2(VERT_RESOLUTION)-1:0]  rasterizer_vert_read_addr   = 0;
+  reg [$clog2(HORIZ_RESOLUTION)-1:0] rasterizer_horiz_read_addr  = 0;
 
   wire [$clog2(VGA_VERT_RES)-1:0]  vga_vert_read_addr;
   wire [$clog2(VGA_HORIZ_RES)-1:0] vga_horiz_read_addr;
@@ -117,8 +120,8 @@ module top(
   wire [FRAME_BUFFER_WIDTH-1:0] vga_read_pixel_data;
 
   frame_buffers_datapath #(
-    .VERT_RESOLUTION (VGA_VERT_RES),
-    .HORIZ_RESOLUTION(VGA_HORIZ_RES),
+    .VERT_RESOLUTION (VERT_RESOLUTION),
+    .HORIZ_RESOLUTION(HORIZ_RESOLUTION),
     .COLOR_DEPTH     (COLOR_DEPTH),
     .Z_DEPTH         (Z_DEPTH),
     .VIVADO_ENV      (VIVADO_ENV)
@@ -133,9 +136,11 @@ module top(
     .i_rasterizer_horiz_write_addr(rasterizer_horiz_write_addr),
     .i_rasterizer_write_en        (rasterizer_write_en),
     .i_rasterizer_write_pixel_data(rasterizer_write_pixel_data),
+    .i_rasterizer_vert_read_addr  (rasterizer_vert_read_addr),
+    .i_rasterizer_horiz_read_addr (rasterizer_horiz_read_addr),
   // inputs from display output
-    .i_vga_vert_read_addr(vga_vert_read_addr),
-    .i_vga_horiz_read_addr(vga_horiz_read_addr),
+    .i_vga_vert_read_addr (vga_vert_read_addr[8:3]),
+    .i_vga_horiz_read_addr(vga_horiz_read_addr[9:3]),
   // outputs to rasterizer
     .o_rasterizer_read_pixel_data(rasterizer_read_pixel_data),
   // output to display output
@@ -143,7 +148,7 @@ module top(
   );
 
   vga_output #(
-    .OUTPUT_DELAY_COUNT(2)
+    .OUTPUT_DELAY_COUNT(1)
   ) vga_output_inst (
     .pixel_clk(pixel_clk),
     .rst_n(srst_n),
@@ -151,14 +156,16 @@ module top(
     .green_in(vga_read_pixel_data[4 +: 4]),
     .blue_in(vga_read_pixel_data[0 +: 4]),
 
+    .frame_buffer_swap_allowed(frame_buffer_swap_allowed),
+
     .horiz_addr(vga_horiz_read_addr),
     .vert_addr(vga_vert_read_addr),
 
-    .horiz_sync(vga_hs),
-    .vert_sync(vga_vs),
-    .red_out(vga_red),
-    .green_out(vga_green),
-    .blue_out(vga_blue)
+    .horiz_sync(o_vga_hs),
+    .vert_sync(o_vga_vs),
+    .red_out(o_vga_red),
+    .green_out(o_vga_green),
+    .blue_out(o_vga_blue)
   );
 
 endmodule
