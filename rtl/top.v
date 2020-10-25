@@ -117,7 +117,7 @@ module top(
 
   wire [FRAME_BUFFER_WIDTH-1:0] vga_read_pixel_data;
 
-  gfg_frame_buffers_datapath #(
+  frame_buffers_datapath #(
     .VERT_RESOLUTION (VGA_VERT_RES),
     .HORIZ_RESOLUTION(VGA_HORIZ_RES),
     .COLOR_DEPTH     (COLOR_DEPTH),
