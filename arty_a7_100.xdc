@@ -9,10 +9,10 @@ create_clock -add -name sys_clk_pin -period 10.00 \
 set_property -dict {PACKAGE_PIN C2  IOSTANDARD LVCMOS33} [get_ports {i_arst_n}];
 
 ## Switches  
-set_property -dict {PACKAGE_PIN A8  IOSTANDARD LVCMOS33} [get_ports {i_sw[0]}];
-set_property -dict {PACKAGE_PIN C11 IOSTANDARD LVCMOS33} [get_ports {i_sw[1]}];
-set_property -dict {PACKAGE_PIN C10 IOSTANDARD LVCMOS33} [get_ports {i_sw[2]}];
-set_property -dict {PACKAGE_PIN A10 IOSTANDARD LVCMOS33} [get_ports {i_sw[3]}];
+#set_property -dict {PACKAGE_PIN A8  IOSTANDARD LVCMOS33} [get_ports {i_sw[0]}];
+#set_property -dict {PACKAGE_PIN C11 IOSTANDARD LVCMOS33} [get_ports {i_sw[1]}];
+#set_property -dict {PACKAGE_PIN C10 IOSTANDARD LVCMOS33} [get_ports {i_sw[2]}];
+#set_property -dict {PACKAGE_PIN A10 IOSTANDARD LVCMOS33} [get_ports {i_sw[3]}];
 
 ## LEDs
 set_property -dict {PACKAGE_PIN H5  IOSTANDARD LVCMOS33} [get_ports {o_led[0]}]; 

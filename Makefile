@@ -8,6 +8,12 @@
 #	vvp gfg_round_robin_reservation_arbiter_tb.o -lxt2
 #	gtkwave gfg_round_robin_reservation_arbiter_tb.lxt > /dev/null 2>&1 &
 
+test_rasterizer:
+	cd testbench && \
+	iverilog -o ./rasterizer_tb.o ./rasterizer_tb.v ../rtl/rasterizer.v && \
+	vvp ./rasterizer_tb.o -lxt2 && \
+	gtkwave ./rasterizer_tb.lxt > /dev/null 2>&1 &
+
 test_frame_buffers_swapping_controller:
 	cd testbench && \
 	iverilog -o ./frame_buffers_swapping_controller_tb.o ./frame_buffers_swapping_controller_tb.v ../rtl/frame_buffers_swapping_controller.v && \

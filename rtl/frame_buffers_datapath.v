@@ -60,10 +60,16 @@ module frame_buffers_datapath #(
 // outputs to rasterizer
   output wire [(COLOR_DEPTH+Z_DEPTH)-1:0] o_rasterizer_read_pixel_data,
 // output to display output
-  output wire [(COLOR_DEPTH+Z_DEPTH)-1:0] o_vga_read_pixel_data
+  output wire [COLOR_DEPTH-1:0] o_vga_read_pixel_data
   );
-
   localparam FRAME_BUFFER_WIDTH = COLOR_DEPTH + Z_DEPTH;
+
+  // the i_rasterization_target signal is registered to help resolve timing
+  // issues
+  reg rasterization_target_register;
+  always @(posedge i_sys_clk)
+    rasterization_target_register <= i_rasterization_target;
+
 
 // Frame Buffer 0 setup
   wire frame_buffer_0_write_clk;
@@ -122,7 +128,7 @@ module frame_buffers_datapath #(
   assign frame_buffer_0_write_clk = 
     i_sys_clk;
   assign frame_buffer_0_write_en = 
-    (i_rasterization_target == 1'b0) ? 
+    (rasterization_target_register == 1'b0) ? 
       i_rasterizer_write_en : 1'b0;
   assign frame_buffer_0_write_addr = 
     (HORIZ_RESOLUTION*i_rasterizer_vert_write_addr) + 
@@ -131,10 +137,10 @@ module frame_buffers_datapath #(
     i_rasterizer_write_pixel_data;
 
   assign frame_buffer_0_read_clk = 
-    (i_rasterization_target == 1'b0) ? 
+    (rasterization_target_register == 1'b0) ? 
       i_sys_clk : i_vga_clk;
   assign frame_buffer_0_read_addr = 
-    (i_rasterization_target == 1'b0) ? 
+    (rasterization_target_register == 1'b0) ? 
       (HORIZ_RESOLUTION*i_rasterizer_vert_write_addr) + 
         i_rasterizer_horiz_write_addr : 
       (HORIZ_RESOLUTION*i_vga_vert_read_addr) + 
@@ -144,7 +150,7 @@ module frame_buffers_datapath #(
   assign frame_buffer_1_write_clk = 
     i_sys_clk;
   assign frame_buffer_1_write_en = 
-    (i_rasterization_target == 1'b1) ? 
+    (rasterization_target_register == 1'b1) ? 
       i_rasterizer_write_en : 1'b0;
   assign frame_buffer_1_write_addr = 
     (HORIZ_RESOLUTION*i_rasterizer_vert_write_addr) + 
@@ -153,10 +159,10 @@ module frame_buffers_datapath #(
     i_rasterizer_write_pixel_data;
 
   assign frame_buffer_1_read_clk = 
-    (i_rasterization_target == 1'b1) ? 
+    (rasterization_target_register == 1'b1) ? 
       i_sys_clk : i_vga_clk;
   assign frame_buffer_1_read_addr = 
-    (i_rasterization_target == 1'b1) ? 
+    (rasterization_target_register == 1'b1) ? 
       (HORIZ_RESOLUTION*i_rasterizer_vert_write_addr) + 
         i_rasterizer_horiz_write_addr : 
       (HORIZ_RESOLUTION*i_vga_vert_read_addr) + 
@@ -164,13 +170,13 @@ module frame_buffers_datapath #(
 
   // frame buffer data output connections
   assign o_rasterizer_read_pixel_data = 
-    (i_rasterization_target == 1'b0) ? 
+    (rasterization_target_register == 1'b0) ? 
       frame_buffer_0_data_out : 
       frame_buffer_1_data_out;
 
   assign o_vga_read_pixel_data =
-    (i_rasterization_target == 1'b1) ? 
-      frame_buffer_0_data_out : 
-      frame_buffer_1_data_out;
+    (rasterization_target_register == 1'b1) ? 
+      frame_buffer_0_data_out[COLOR_DEPTH-1:0] : 
+      frame_buffer_1_data_out[COLOR_DEPTH-1:0];
 
 endmodule

@@ -60,17 +60,12 @@ module top(
             VGA_HORIZ_RES    = 640,
             VGA_VERT_RES     = 480,
             COLOR_DEPTH      =  12,
-            Z_DEPTH          =   2,
+            Z_DEPTH          =   0,
             VIVADO_ENV       =   1;
 
   localparam FRAME_BUFFER_WIDTH = COLOR_DEPTH + Z_DEPTH;
 
-  // TODO: Add debouncing to rst
   reg srst_n;
-  always @(posedge i_clk)
-    srst_n <= i_arst_n;
-
-  assign o_led = 0;
 
   wire pixel_clk;
   wire pixel_clk_locked;
@@ -89,9 +84,12 @@ module top(
     .locked(pixel_clk_locked)
   );
 
-  reg raster_in_progress = 0;
+  wire raster_in_progress;
 
   wire frame_buffer_swap_allowed;
+
+  assign o_led[1:0] = {2{frame_buffer_swap_allowed}};
+  assign o_led[3:2] = {2{rasterizer_done}};
 
   wire new_frame;
   wire rasterization_target;
@@ -105,19 +103,23 @@ module top(
     .o_rasterization_target(rasterization_target)
   );
 
-  reg [$clog2(VERT_RESOLUTION)-1:0]  rasterizer_vert_write_addr  = 0;
-  reg [$clog2(HORIZ_RESOLUTION)-1:0] rasterizer_horiz_write_addr = 0;
-  reg                                rasterizer_write_en         = 0;
-  reg [FRAME_BUFFER_WIDTH-1:0]       rasterizer_write_pixel_data = 0;
+  wire [$clog2(VERT_RESOLUTION)-1:0]  rasterizer_vert_write_addr;
+  wire [$clog2(HORIZ_RESOLUTION)-1:0] rasterizer_horiz_write_addr;
+  wire                                rasterizer_write_en;
+  wire [FRAME_BUFFER_WIDTH-1:0]       rasterizer_write_pixel_data;
+  // TODO: Replace with actual reading eventually
   reg [$clog2(VERT_RESOLUTION)-1:0]  rasterizer_vert_read_addr   = 0;
   reg [$clog2(HORIZ_RESOLUTION)-1:0] rasterizer_horiz_read_addr  = 0;
 
   wire [$clog2(VGA_VERT_RES)-1:0]  vga_vert_read_addr;
   wire [$clog2(VGA_HORIZ_RES)-1:0] vga_horiz_read_addr;
 
+  wire [$clog2(VGA_VERT_RES)-1:0]  vga_vert_read_addr_crossed;
+  wire [$clog2(VGA_HORIZ_RES)-1:0] vga_horiz_read_addr_crossed;
+
   wire [FRAME_BUFFER_WIDTH-1:0] rasterizer_read_pixel_data;
 
-  wire [FRAME_BUFFER_WIDTH-1:0] vga_read_pixel_data;
+  wire [COLOR_DEPTH-1:0] vga_read_pixel_data;
 
   frame_buffers_datapath #(
     .VERT_RESOLUTION (VERT_RESOLUTION),
@@ -139,16 +141,37 @@ module top(
     .i_rasterizer_vert_read_addr  (rasterizer_vert_read_addr),
     .i_rasterizer_horiz_read_addr (rasterizer_horiz_read_addr),
   // inputs from display output
-    .i_vga_vert_read_addr (vga_vert_read_addr[8:3]),
-    .i_vga_horiz_read_addr(vga_horiz_read_addr[9:3]),
+    .i_vga_vert_read_addr (vga_vert_read_addr_crossed[8:3]),
+    .i_vga_horiz_read_addr(vga_horiz_read_addr_crossed[9:3]),
   // outputs to rasterizer
     .o_rasterizer_read_pixel_data(rasterizer_read_pixel_data),
   // output to display output
     .o_vga_read_pixel_data(vga_read_pixel_data)
   );
 
+  wire rasterizer_done;
+  rasterizer #(
+    .VERT_RESOLUTION (VERT_RESOLUTION),
+    .HORIZ_RESOLUTION(HORIZ_RESOLUTION)
+  ) rasterizer_inst (
+    .i_clk(i_clk),
+    .i_srst_n(srst_n),
+    .i_go(new_frame),
+
+    .o_vert_write_addr(rasterizer_vert_write_addr),
+    .o_horiz_write_addr(rasterizer_horiz_write_addr),
+
+    .o_red(rasterizer_write_pixel_data[8 +: 4]),
+    .o_green(rasterizer_write_pixel_data[4 +: 4]),
+    .o_blue(rasterizer_write_pixel_data[0 +: 4]),
+    .o_write_en(rasterizer_write_en),
+    // TODO: Come up with something more elegant
+    .o_done(rasterizer_done)
+  );
+  assign raster_in_progress = !rasterizer_done;
+
   vga_output #(
-    .OUTPUT_DELAY_COUNT(1)
+    .OUTPUT_DELAY_COUNT(2)
   ) vga_output_inst (
     .pixel_clk(pixel_clk),
     .rst_n(srst_n),
@@ -167,5 +190,34 @@ module top(
     .green_out(o_vga_green),
     .blue_out(o_vga_blue)
   );
+
+  blk_mem_addr_clk_domain_cross vert_inst
+  (
+    .clka(pixel_clk),
+    .wea(1'b1),
+    .addra(0),
+    .dina(vga_vert_read_addr),
+
+    .clkb(pixel_clk),
+    .addrb(0),
+    .doutb(vga_vert_read_addr_crossed)
+  );
+
+  blk_mem_addr_clk_domain_cross horiz_inst
+  (
+    .clka(pixel_clk),
+    .wea(1'b1),
+    .addra(0),
+    .dina(vga_horiz_read_addr),
+
+    .clkb(pixel_clk),
+    .addrb(0),
+    .doutb(vga_horiz_read_addr_crossed)
+  );
+
+  // TODO: Add debouncing to rst
+  always @(posedge i_clk) begin
+    srst_n <= i_arst_n;
+  end
 
 endmodule
