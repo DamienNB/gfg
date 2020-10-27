@@ -8,6 +8,12 @@
 #	vvp gfg_round_robin_reservation_arbiter_tb.o -lxt2
 #	gtkwave gfg_round_robin_reservation_arbiter_tb.lxt > /dev/null 2>&1 &
 
+test_rasterizer_triangle_intersection_detector:
+	cd testbench && \
+	iverilog -o ./rasterizer_triangle_intersection_detector_tb.o ./rasterizer_triangle_intersection_detector_tb.v ../rtl/rasterizer_triangle_intersection_detector.v && \
+	vvp ./rasterizer_triangle_intersection_detector_tb.o -lxt2 && \
+	gtkwave ./rasterizer_triangle_intersection_detector_tb.lxt > /dev/null 2>&1 &
+
 test_rasterizer:
 	cd testbench && \
 	iverilog -o ./rasterizer_tb.o ./rasterizer_tb.v ../rtl/rasterizer.v && \
