@@ -47,7 +47,7 @@
 module top(
     input i_clk,
     input i_arst_n,
-    input [3:0] o_sw,
+    input [3:0] i_sw,
     output o_vga_hs,
     output o_vga_vs,
     output [3:0] o_vga_red,
@@ -150,6 +150,13 @@ module top(
   );
 
   wire rasterizer_done;
+  reg [$clog2(HORIZ_RESOLUTION)-1:0] triangle_point_0_x = 0;
+  reg [$clog2(VERT_RESOLUTION)-1:0]  triangle_point_0_y = 0;
+  reg [$clog2(HORIZ_RESOLUTION)-1:0] triangle_point_1_x = 0;
+  reg [$clog2(VERT_RESOLUTION)-1:0]  triangle_point_1_y = 0;
+  reg [$clog2(HORIZ_RESOLUTION)-1:0] triangle_point_2_x = 0;
+  reg [$clog2(VERT_RESOLUTION)-1:0]  triangle_point_2_y = 0;
+
   rasterizer #(
     .VERT_RESOLUTION (VERT_RESOLUTION),
     .HORIZ_RESOLUTION(HORIZ_RESOLUTION)
@@ -157,6 +164,13 @@ module top(
     .i_clk(i_clk),
     .i_srst_n(srst_n),
     .i_go(new_frame),
+
+    .i_triangle_point_0_x(triangle_point_0_x),
+    .i_triangle_point_0_y(triangle_point_0_x),
+    .i_triangle_point_1_x(triangle_point_1_x),
+    .i_triangle_point_1_y(triangle_point_1_y),
+    .i_triangle_point_2_x(triangle_point_2_x),
+    .i_triangle_point_2_y(triangle_point_2_y),
 
     .o_vert_write_addr(rasterizer_vert_write_addr),
     .o_horiz_write_addr(rasterizer_horiz_write_addr),
@@ -218,6 +232,58 @@ module top(
   // TODO: Add debouncing to rst
   always @(posedge i_clk) begin
     srst_n <= i_arst_n;
+    
+    if(srst_n == 1'b0) begin
+      triangle_point_0_x <= 0;
+      triangle_point_0_y <= 0;
+      triangle_point_1_x <= 0;
+      triangle_point_1_y <= 0;
+      triangle_point_2_x <= 0;
+      triangle_point_2_y <= 0;
+    end else begin
+      case(i_sw[1:0])
+        2'b00   : begin
+          triangle_point_0_x <= 10;
+          triangle_point_0_y <= 10;
+          triangle_point_1_x <= 10;
+          triangle_point_1_y <= 50;
+          triangle_point_2_x <= 50;
+          triangle_point_2_y <= 25;
+        end
+        2'b01   : begin
+          triangle_point_0_x <= HORIZ_RESOLUTION/2;
+          triangle_point_0_y <= 5;
+          triangle_point_1_x <= 5;
+          triangle_point_1_y <= VERT_RESOLUTION-5;
+          triangle_point_2_x <= HORIZ_RESOLUTION-5;
+          triangle_point_2_y <= VERT_RESOLUTION-5;
+        end
+        2'b10   : begin
+          triangle_point_0_x <= 3;
+          triangle_point_0_y <= 3;
+          triangle_point_1_x <= 37;
+          triangle_point_1_y <= 37;
+          triangle_point_2_x <= 7;
+          triangle_point_2_y <= 7;
+        end
+        2'b11   : begin
+          triangle_point_0_x <= 10;
+          triangle_point_0_y <= 10;
+          triangle_point_1_x <= 50;
+          triangle_point_1_y <= 10;
+          triangle_point_2_x <= 25;
+          triangle_point_2_y <= 50;
+        end
+        default : begin
+          triangle_point_0_x <= 10;
+          triangle_point_0_y <= 10;
+          triangle_point_1_x <= 50;
+          triangle_point_1_y <= 10;
+          triangle_point_2_x <= 25;
+          triangle_point_2_y <= 50;
+        end
+      endcase
+    end
   end
 
 endmodule

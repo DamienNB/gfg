@@ -1,8 +1,8 @@
 `timescale 1 ns/100 ps
 
 module rasterizer_triangle_intersection_detector_tb ();
-  parameter VERT_RESOLUTION  = 10,
-            HORIZ_RESOLUTION = 10;
+  parameter VERT_RESOLUTION  = 60,
+            HORIZ_RESOLUTION = 80;
   
   reg i_clk = 0;
   reg i_srst_n = 0;
@@ -11,14 +11,16 @@ module rasterizer_triangle_intersection_detector_tb ();
   reg [(2*$clog2(HORIZ_RESOLUTION))-1:0] i_current_point_x = 0;
   reg [(2*$clog2(VERT_RESOLUTION))-1:0]  i_current_point_y = 0;
 
-  reg [$clog2(HORIZ_RESOLUTION)-1:0] i_triangle_point_0_x = 1;
-  reg [$clog2(VERT_RESOLUTION)-1:0]  i_triangle_point_0_y = 1;
-  reg [$clog2(HORIZ_RESOLUTION)-1:0] i_triangle_point_1_x = 8;
-  reg [$clog2(VERT_RESOLUTION)-1:0]  i_triangle_point_1_y = 1;
-  reg [$clog2(HORIZ_RESOLUTION)-1:0] i_triangle_point_2_x = 5;
-  reg [$clog2(VERT_RESOLUTION)-1:0]  i_triangle_point_2_y = 8;
+  reg [$clog2(HORIZ_RESOLUTION)-1:0] i_triangle_point_0_x = 10;
+  reg [$clog2(VERT_RESOLUTION)-1:0]  i_triangle_point_0_y = 10;
+  reg [$clog2(HORIZ_RESOLUTION)-1:0] i_triangle_point_1_x = 10;
+  reg [$clog2(VERT_RESOLUTION)-1:0]  i_triangle_point_1_y = 50;
+  reg [$clog2(HORIZ_RESOLUTION)-1:0] i_triangle_point_2_x = 50;
+  reg [$clog2(VERT_RESOLUTION)-1:0]  i_triangle_point_2_y = 25;
 
   reg signed [7:0] i_slack = 0;
+
+  wire unsigned [63:0] triangle_areas_sum;
 
   wire o_triangle_loaded;
   wire o_point_inside_triangle;
@@ -42,6 +44,7 @@ module rasterizer_triangle_intersection_detector_tb ();
     .o_triangle_loaded(o_triangle_loaded),
     .o_point_inside_triangle(o_point_inside_triangle)
   );
+  assign triangle_areas_sum = UUT.triangle_area[0] + UUT.triangle_area[1] + UUT.triangle_area[2];
 
   always #1 i_clk <= ~i_clk;
 
@@ -67,14 +70,14 @@ module rasterizer_triangle_intersection_detector_tb ();
 
     i_load_triangle <= 1'b0;
 
-    #4 ;
+    #8 ;
 
     for(i=0; i<VERT_RESOLUTION; i=i+1) begin
       for(j=0; j<HORIZ_RESOLUTION; j=j+1) begin
         i_current_point_x = j;
         i_current_point_y = i;
 
-        #4 ;
+        #8 ;
 
         if(o_point_inside_triangle)
           $write("*");
@@ -84,7 +87,7 @@ module rasterizer_triangle_intersection_detector_tb ();
       $write("\n");
     end
     
-    #4 $finish;
+    #6 $finish;
   end
 
   initial begin
@@ -104,10 +107,23 @@ module rasterizer_triangle_intersection_detector_tb ();
               o_triangle_loaded,
               o_point_inside_triangle,
               UUT.state,
+              UUT.triangle_point_0_x_register,
+              UUT.triangle_point_0_y_register,
+              UUT.triangle_point_1_x_register,
+              UUT.triangle_point_1_y_register,
+              UUT.triangle_point_2_x_register,
+              UUT.triangle_point_2_y_register,
+              UUT.cross_product_input_a[0],
+              UUT.cross_product_input_b[0],
+              UUT.cross_product_input_c[0],
+              UUT.cross_product_input_d[0],
+              UUT.cross_product[0],
+              UUT.cross_product_absolute_value[0],
               UUT.principle_triangle_area,
               UUT.triangle_area[0],
               UUT.triangle_area[1],
-              UUT.triangle_area[2]
+              UUT.triangle_area[2],
+              triangle_areas_sum
     );
   end
 endmodule

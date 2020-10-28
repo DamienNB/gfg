@@ -11,7 +11,7 @@ module vga_output #(
             VERT_SYNC_PULSE  =   2,
             VERT_BACK_PORCH  =  29,
 
-            OUTPUT_DELAY_COUNT = 1
+            OUTPUT_DELAY_COUNT = 2
   ) (
     input pixel_clk, // If running with default values, expects 25 MHz
     input rst_n,
@@ -176,6 +176,11 @@ module vga_output #(
                        (vert_counter_delayed < (VERT_TOTAL - 
                                                 VERT_BACK_PORCH)));
 
+  /*
+  assign red_out   = red_in;
+  assign green_out = green_in;
+  assign blue_out  = blue_in;
+  */
   assign currently_drawing_screen = ((horiz_counter_delayed < HORIZ_RESOLUTION) && 
                                      (vert_counter_delayed < VERT_RESOLUTION));
 

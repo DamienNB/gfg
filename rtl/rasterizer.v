@@ -70,7 +70,7 @@ module rasterizer #(
   wire triangle_loaded;
   wire point_inside_triangle;
 
-  localparam DELAY_LENGTH = 2;
+  localparam DELAY_LENGTH = 4;
 
   reg [$clog2(HORIZ_RESOLUTION)-1:0] horiz_target_addr_delay [DELAY_LENGTH-1:0];
   reg [$clog2(VERT_RESOLUTION)-1:0]  vert_target_addr_delay  [DELAY_LENGTH-1:0];
