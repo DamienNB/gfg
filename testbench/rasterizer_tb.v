@@ -26,6 +26,13 @@ module rasterizer_tb ();
     .i_srst_n(i_srst_n),
     .i_go(i_go),
 
+    .i_triangle_point_0_x(10),
+    .i_triangle_point_0_y(10),
+    .i_triangle_point_1_x(10),
+    .i_triangle_point_1_y(70),
+    .i_triangle_point_2_x(70),
+    .i_triangle_point_2_y(30),
+
     .o_vert_write_addr(o_vert_write_addr),
     .o_horiz_write_addr(o_horiz_write_addr),
     .o_red(o_red),

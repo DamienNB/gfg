@@ -42,9 +42,9 @@ module rasterizer #(
   output reg [$clog2(VERT_RESOLUTION)-1:0]  o_vert_write_addr  = 0,
   output reg [$clog2(HORIZ_RESOLUTION)-1:0] o_horiz_write_addr = 0,
 
-  output wire [3:0] o_red,
-  output wire [3:0] o_green,
-  output wire [3:0] o_blue,
+  output reg [3:0] o_red,
+  output reg [3:0] o_green,
+  output reg [3:0] o_blue,
   output reg o_write_en = 1'b0,
   output reg o_done =     1'b0
   );
@@ -61,23 +61,65 @@ module rasterizer #(
   reg [$clog2(VERT_RESOLUTION)-1:0]  top_y;
   reg [$clog2(VERT_RESOLUTION)-1:0]  bottom_y;
 
-  reg[31:0] color_counter = 0;
+  reg load_triangle = 1'b0;
 
-  localparam WAIT = 2'b01, RASTERIZE = 2'b10; 
-  reg [1:0] state = WAIT;
+  reg [$clog2(HORIZ_RESOLUTION)-1:0] horiz_target_addr = 0;
+  reg [$clog2(VERT_RESOLUTION)-1:0]  vert_target_addr  = 0;
+  reg valid_target = 1'b0;
 
-  /*
-  assign o_red   = 
-    (o_horiz_write_addr == HORIZ_RESOLUTION-1) || (o_vert_write_addr == VERT_RESOLUTION-1) ?
-    4'hf : 0; //(o_vert_write_addr/4) : 0;
-    */
-  assign o_red   = color_counter[31 -: 4];
-  assign o_green = color_counter[31 -: 4];
-  assign o_blue  = color_counter[31 -: 4];
+  wire triangle_loaded;
+  wire point_inside_triangle;
+
+  localparam DELAY_LENGTH = 2;
+
+  reg [$clog2(HORIZ_RESOLUTION)-1:0] horiz_target_addr_delay [DELAY_LENGTH-1:0];
+  reg [$clog2(VERT_RESOLUTION)-1:0]  vert_target_addr_delay  [DELAY_LENGTH-1:0];
+  reg valid_target_delay [DELAY_LENGTH-1:0];
+
+  localparam WAIT = 3'b001, LOAD_TRIANGLE = 3'b010, RASTERIZE = 3'b100; 
+  reg [2:0] state = WAIT;
+
+  rasterizer_triangle_intersection_detector #(
+    .VERT_RESOLUTION(VERT_RESOLUTION),
+    .HORIZ_RESOLUTION(HORIZ_RESOLUTION)
+  ) rtid (
+    .i_clk(i_clk),
+    .i_srst_n(i_srst_n),
+    .i_load_triangle(load_triangle),
+    .i_current_point_x(horiz_target_addr),
+    .i_current_point_y(vert_target_addr),
+    .i_triangle_point_0_x(triangle_point_0_x_register),
+    .i_triangle_point_0_y(triangle_point_0_y_register),
+    .i_triangle_point_1_x(triangle_point_1_x_register),
+    .i_triangle_point_1_y(triangle_point_1_y_register),
+    .i_triangle_point_2_x(triangle_point_2_x_register),
+    .i_triangle_point_2_y(triangle_point_2_y_register),
+    .i_slack(8'h00), // TODO: Change this
+    .o_triangle_loaded(triangle_loaded),
+    .o_point_inside_triangle(point_inside_triangle)
+  );
+
+  integer i;
+  generate
+  always @(posedge i_clk) begin
+    for(i=DELAY_LENGTH-1; i>0; i=i-1) begin
+      vert_target_addr_delay[i]  <= vert_target_addr_delay[i-1];
+      horiz_target_addr_delay[i] <= horiz_target_addr_delay[i-1];
+      valid_target_delay[i]      <= valid_target_delay[i-1];
+    end
+    vert_target_addr_delay[0]  <= vert_target_addr;
+    horiz_target_addr_delay[0] <= horiz_target_addr;
+    valid_target_delay[0]      <= valid_target;
+  end
+  endgenerate
 
   always @(posedge i_clk) begin
     go_register <= i_go;
 
+    o_vert_write_addr  <= vert_target_addr_delay[DELAY_LENGTH-1];
+    o_horiz_write_addr <= horiz_target_addr_delay[DELAY_LENGTH-1];
+
+    /*
     if(triangle_point_0_y_register >= triangle_point_1_y_register)
       if(triangle_point_0_y_register >= triangle_point_2_y_register)
         top_y <= triangle_point_0_y_register;
@@ -99,21 +141,23 @@ module rasterizer #(
         bottom_y <= triangle_point_1_y_register;
       else // if(triangle_point_2_y_register < triangle_point_1_y_register)
         bottom_y <= triangle_point_2_y_register;
+    */
 
     if(i_srst_n == 1'b0) begin
+      load_triangle    <= 1'b0;
+      vert_target_addr   <= 0;
+      horiz_target_addr  <= 0;
+      valid_target       <= 1'b0;
       state              <= WAIT;
-      o_vert_write_addr  <= 0;
-      o_horiz_write_addr <= 0;
       o_write_en         <= 1'b0;
       o_done             <= 1'b0;
-      color_counter      <= 0;
     end else begin
-      color_counter      <= color_counter+1;
-
       // defaults to be overridden by state behaviors
+      load_triangle    <= 1'b0;
+      vert_target_addr   <= 0;
+      horiz_target_addr  <= 0;
+      valid_target       <= 1'b0;
       state              <= WAIT;
-      o_vert_write_addr  <= 0;
-      o_horiz_write_addr <= 0;
       o_write_en         <= 1'b0;
       o_done             <= 1'b0;
 
@@ -125,7 +169,7 @@ module rasterizer #(
       triangle_point_2_y_register <= triangle_point_2_y_register;
 
       case(state)
-        WAIT      : begin
+        WAIT          : begin
           o_vert_write_addr  <= 0;
           o_horiz_write_addr <= 0;
           o_done <= o_done;
@@ -142,35 +186,73 @@ module rasterizer #(
           end
 
           if(go_register) begin
-            state <= RASTERIZE;
-            o_write_en <= 1'b1;
+            state <= LOAD_TRIANGLE;
+            load_triangle <= 1'b1;
           end else begin
             state <= WAIT;
-            o_write_en <= 1'b0;
+            load_triangle <= 1'b0;
           end
         end
 
-        RASTERIZE : begin
-          state      <= RASTERIZE;
-          o_write_en <= 1'b1;
+        LOAD_TRIANGLE : begin
+          load_triangle <= 1'b0;
+          if(triangle_loaded) begin
+            vert_target_addr  <= 0;
+            horiz_target_addr <= 0;
+            valid_target <= 1'b1;
+            state <= RASTERIZE;
+          end else begin
+            state <= LOAD_TRIANGLE;
+          end
+        end
+
+        RASTERIZE     : begin
+          valid_target <= 1'b1;
+          state        <= RASTERIZE;
+
+          o_write_en <= 1'b0;
           o_done     <= 1'b0;
 
-          if(o_horiz_write_addr < HORIZ_RESOLUTION-1) begin
-            o_horiz_write_addr <= o_horiz_write_addr + 1;
-            o_vert_write_addr  <= o_vert_write_addr;
+          if(horiz_target_addr < HORIZ_RESOLUTION-1) begin
+            horiz_target_addr <= horiz_target_addr + 1;
+            vert_target_addr  <= vert_target_addr;
           end else begin
-            o_horiz_write_addr <= 0;
-            if(o_vert_write_addr < VERT_RESOLUTION-1) begin
-              o_vert_write_addr <= o_vert_write_addr + 1;
+            horiz_target_addr <= 0;
+            if(vert_target_addr < VERT_RESOLUTION-1) begin
+              vert_target_addr <= vert_target_addr + 1;
             end else begin
-              o_vert_write_addr <= 0;
-              state      <= WAIT;
-              o_write_en <= 1'b0;
-              o_done     <= 1'b1;
+              valid_target <= 1'b0;
+              horiz_target_addr <= horiz_target_addr;
+              vert_target_addr  <= vert_target_addr;
+            end
+          end
+
+          // Due to the way the delays are set up, this will match up with the
+          // values of o_vert_write_addr and o_horiz_write_addr at the output
+          if(valid_target_delay[DELAY_LENGTH-1]) begin
+            o_write_en <= 1'b1;
+            if(point_inside_triangle) begin
+              o_red   <= 4'hf;
+              o_green <= 4'hf;
+              o_blue  <= 4'hf;
+            end else begin
+              o_red   <= 4'h0;
+              o_green <= 4'h0;
+              o_blue  <= 4'h0;
+            end
+          end else begin
+            o_write_en <= 1'b0;
+          end
+
+          if(o_vert_write_addr >= VERT_RESOLUTION-1) begin
+            if(o_horiz_write_addr >= HORIZ_RESOLUTION-1) begin
+              state <= WAIT;
+              o_done <= 1'b1;
             end
           end
         end
-        default  : begin
+
+        default       : begin
           state <= WAIT;
         end
       endcase

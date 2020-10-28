@@ -16,7 +16,7 @@ test_rasterizer_triangle_intersection_detector:
 
 test_rasterizer:
 	cd testbench && \
-	iverilog -o ./rasterizer_tb.o ./rasterizer_tb.v ../rtl/rasterizer.v && \
+	iverilog -o ./rasterizer_tb.o ./rasterizer_tb.v ../rtl/rasterizer.v ../rtl/rasterizer_triangle_intersection_detector.v && \
 	vvp ./rasterizer_tb.o -lxt2 && \
 	gtkwave ./rasterizer_tb.lxt > /dev/null 2>&1 &
 
