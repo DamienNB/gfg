@@ -37,3 +37,11 @@ set_property -dict {PACKAGE_PIN V10 IOSTANDARD LVCMOS33} [get_ports {o_vga_green
 set_property -dict {PACKAGE_PIN V11 IOSTANDARD LVCMOS33} [get_ports {o_vga_green[3]}];
 set_property -dict {PACKAGE_PIN U14 IOSTANDARD LVCMOS33} [get_ports {o_vga_hs}];
 set_property -dict {PACKAGE_PIN V14 IOSTANDARD LVCMOS33} [get_ports {o_vga_vs}];
+
+## ChipKit Board Connections
+#   SPI Connections
+set_property -dict { PACKAGE_PIN G1    IOSTANDARD LVCMOS33 } [get_ports { o_spi_miso }];
+set_property -dict { PACKAGE_PIN H1    IOSTANDARD LVCMOS33 } [get_ports { i_spi_mosi }];
+set_property -dict { PACKAGE_PIN F1    IOSTANDARD LVCMOS33 } [get_ports { i_spi_clk }];
+set_property -dict { PACKAGE_PIN C1    IOSTANDARD LVCMOS33 } [get_ports { i_spi_ss }];
+
