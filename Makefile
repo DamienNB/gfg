@@ -7,6 +7,11 @@
 #	iverilog -o gfg_round_robin_reservation_arbiter_tb.o gfg_round_robin_reservation_arbiter_tb.v gfg_round_robin_reservation_arbiter.v ram_dual_port.v
 #	vvp gfg_round_robin_reservation_arbiter_tb.o -lxt2
 #	gtkwave gfg_round_robin_reservation_arbiter_tb.lxt > /dev/null 2>&1 &
+test_gfg_spi_slave:
+	cd testbench && \
+	iverilog -o ./gfg_spi_slave_tb.o ./gfg_spi_slave_tb.v ../rtl/gfg_spi_slave.v ../rtl/ram_dual_port.v && \
+	vvp ./gfg_spi_slave_tb.o -lxt2 && \
+	gtkwave ./gfg_spi_slave_tb.lxt > /dev/null 2>&1 &
 
 test_rasterizer_triangle_intersection_detector:
 	cd testbench && \

@@ -52,14 +52,14 @@ module top(
     input  i_spi_clk,
     output o_spi_miso,
     input  i_spi_mosi,
-    input  i_spi_ss,
+    input  i_spi_ss_n,
 
     output o_vga_hs,
     output o_vga_vs,
     output [3:0] o_vga_red,
     output [3:0] o_vga_green,
     output [3:0] o_vga_blue,
-    output reg [3:0] o_led
+    output reg [7:0] o_led
     );
   parameter HORIZ_RESOLUTION =  80,
             VERT_RESOLUTION  =  60,
@@ -157,73 +157,37 @@ module top(
     .o_vga_read_pixel_data(vga_read_pixel_data)
   );
 
-  wire [11:0] spi_slave_tx_mem_read_addr;
-  wire [7:0]  spi_slave_tx_mem_read_data;
-  wire [11:0] spi_slave_rc_mem_write_addr;
-  wire [7:0]  spi_slave_rc_mem_write_data;
-  wire        spi_slave_rc_mem_write_en;
-
-  wire [3:0]  spi_slave_regs_addr;
+  wire [5:0]  spi_slave_regs_addr;
   wire [31:0] spi_slave_regs_read_data;
   wire        spi_slave_regs_write_en;
   wire [31:0] spi_slave_regs_write_data;
 
-  spiifc spi_slave_inst (
-    .Reset(srst),
-    .SysClk(i_clk),
+  wire [5:0] spi_slave_state;
 
-    .SPI_CLK(i_spi_clk),
-    .SPI_MISO(o_spi_miso),
-    .SPI_MOSI(i_spi_mosi),
-    .SPI_SS(i_spi_ss),
+  gfg_spi_slave #(
+    .NUM_REGISTERS(32),
+    .REGISTER_WIDTH(32)
+  ) spi_slave_inst (
+    .i_sys_clk(i_clk),
+    .i_srst_n(srst_n),
 
-    .txMemAddr(spi_slave_tx_mem_read_addr),
-    .txMemData(spi_slave_tx_mem_read_data),
-    .rcMemAddr(spi_slave_rc_mem_write_addr),
-    .rcMemData(spi_slave_rc_mem_write_data),
-    .rcMemWE(spi_slave_rc_mem_write_en),
+    .i_spi_clk(i_spi_clk),
+    .o_spi_miso(o_spi_miso),
+    .i_spi_mosi(i_spi_mosi),
+    .i_spi_ss_n(i_spi_ss_n),
 
-    .regAddr(spi_slave_regs_addr),
-    .regReadData(spi_slave_regs_read_data),
-    .regWriteEn(spi_slave_regs_write_en),
-    .regWriteData(spi_slave_regs_write_data)
-  );
-
-  reg        spi_tx_buffer_write_en   = 1'b0;
-  reg [11:0] spi_tx_buffer_write_addr = 0;
-  reg [7:0]  spi_tx_buffer_write_data = 0;
-
-  blk_mem_vspi_buffer spi_slave_tx_mem (
-    .clka(i_clk),
-    .wea(spi_tx_buffer_write_en),
-    .addra(spi_tx_buffer_write_addr),
-    .dina(spi_tx_buffer_write_data),
-
-    .clkb(i_clk),
-    .addrb(spi_slave_tx_mem_read_addr),
-    .doutb(spi_slave_tx_mem_read_data)
-  );
-
-  reg  [11:0] spi_rc_buffer_read_addr = 0;
-  wire [7:0]  spi_rc_buffer_read_data;
-
-  blk_mem_vspi_buffer spi_slave_rc_mem (
-    .clka(i_clk),
-    .wea(spi_slave_rc_mem_write_en),
-    .addra(spi_slave_rc_mem_write_addr),
-    .dina(spi_slave_rc_mem_write_data),
-
-    .clkb(i_clk),
-    .addrb(spi_rc_buffer_read_data),
-    .doutb(spi_rc_buffer_read_data)
+    .o_reg_addr(spi_slave_regs_addr),
+    .i_reg_read_data(spi_slave_regs_read_data),
+    .o_reg_write_en(spi_slave_regs_write_en),
+    .o_reg_write_data(spi_slave_regs_write_data)
   );
 
   reg         spi_regs_write_en   = 1'b0;
-  reg  [3:0]  spi_regs_addr       = 0;
+  reg   [5:0] spi_regs_addr       = 0;
   wire [31:0] spi_regs_read_data;
   reg  [31:0] spi_regs_write_data = 0;
 
-  blk_mem_vspi_regs spi_slave_regs (
+  blk_mem_spi_slave_regs spi_slave_regs (
     .clka(i_clk),
     .wea(spi_slave_regs_write_en),
     .addra(spi_slave_regs_addr),
@@ -321,7 +285,7 @@ module top(
   // TODO: Add debouncing to rst
   always @(posedge i_clk) begin
     srst_n <= i_arst_n;
-    
+
     if(srst_n == 1'b0) begin
       triangle_point_0_x <= 0;
       triangle_point_0_y <= 0;
@@ -340,7 +304,7 @@ module top(
       spi_regs_addr       <= 0;
       spi_regs_write_data <= 0;
 
-      o_led <= spi_regs_read_data[3:0];
+      o_led <= spi_slave_state;
 
       case(i_sw[1:0])
         2'b00   : begin
