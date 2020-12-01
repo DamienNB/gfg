@@ -228,6 +228,9 @@ module top(
   reg [$clog2(VERT_RESOLUTION)-1:0]  triangle_point_1_y = 0;
   reg [$clog2(HORIZ_RESOLUTION)-1:0] triangle_point_2_x = 0;
   reg [$clog2(VERT_RESOLUTION)-1:0]  triangle_point_2_y = 0;
+  reg [3:0] triangle_color_red   = 0;
+  reg [3:0] triangle_color_green = 0;
+  reg [3:0] triangle_color_blue  = 0;
 
   rasterizer #(
     .VERT_RESOLUTION (VERT_RESOLUTION),
@@ -243,6 +246,9 @@ module top(
     .i_triangle_point_1_y(triangle_point_1_y),
     .i_triangle_point_2_x(triangle_point_2_x),
     .i_triangle_point_2_y(triangle_point_2_y),
+    .i_triangle_color_red(triangle_color_red),
+    .i_triangle_color_green(triangle_color_green),
+    .i_triangle_color_blue(triangle_color_blue),
 
     .o_vert_write_addr(rasterizer_vert_write_addr),
     .o_horiz_write_addr(rasterizer_horiz_write_addr),
@@ -340,6 +346,10 @@ module top(
       triangle_point_1_y <= spi_slave_regs[3];
       triangle_point_2_x <= spi_slave_regs[4];
       triangle_point_2_y <= spi_slave_regs[5];
+
+      triangle_color_red   <= spi_slave_regs[6][11:8];
+      triangle_color_green <= spi_slave_regs[6][7:4];
+      triangle_color_blue  <= spi_slave_regs[6][3:0];
 
       //spi_regs_write_en   <= 1'b0;
       //spi_regs_write_data <= 0;

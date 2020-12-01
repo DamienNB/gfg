@@ -38,6 +38,9 @@ module rasterizer #(
   input wire [$clog2(VERT_RESOLUTION)-1:0]  i_triangle_point_1_y,
   input wire [$clog2(HORIZ_RESOLUTION)-1:0] i_triangle_point_2_x,
   input wire [$clog2(VERT_RESOLUTION)-1:0]  i_triangle_point_2_y,
+  input wire [3:0] i_triangle_color_red,
+  input wire [3:0] i_triangle_color_green,
+  input wire [3:0] i_triangle_color_blue,
 
   output reg [$clog2(VERT_RESOLUTION)-1:0]  o_vert_write_addr  = 0,
   output reg [$clog2(HORIZ_RESOLUTION)-1:0] o_horiz_write_addr = 0,
@@ -232,9 +235,9 @@ module rasterizer #(
           if(valid_target_delay[DELAY_LENGTH-1]) begin
             o_write_en <= 1'b1;
             if(point_inside_triangle) begin
-              o_red   <= 4'hf;
-              o_green <= 4'hf;
-              o_blue  <= 4'hf;
+              o_red   <= i_triangle_color_red;
+              o_green <= i_triangle_color_green;
+              o_blue  <= i_triangle_color_blue;
             end else begin
               o_red   <= 4'h0;
               o_green <= 4'h0;
