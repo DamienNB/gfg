@@ -174,6 +174,7 @@ module gfg_spi_slave #(
           state <= STATE_TRANSMIT_DATA;
         end
         STATE_TRANSMIT_DATA : begin
+          o_reg_addr            <= o_reg_addr;
           shift_register_tracker <= shift_register_tracker;
           o_spi_miso <= o_spi_miso;
           if(spi_ss_n_reg == 1'b0) begin

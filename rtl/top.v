@@ -59,7 +59,7 @@ module top(
     output [3:0] o_vga_red,
     output [3:0] o_vga_green,
     output [3:0] o_vga_blue,
-    output reg [7:0] o_led
+    output reg [7:0] o_led = 0
     );
   parameter HORIZ_RESOLUTION =  80,
             VERT_RESOLUTION  =  60,
@@ -179,14 +179,21 @@ module top(
     .o_reg_addr(spi_slave_regs_addr),
     .i_reg_read_data(spi_slave_regs_read_data),
     .o_reg_write_en(spi_slave_regs_write_en),
-    .o_reg_write_data(spi_slave_regs_write_data)
+    .o_reg_write_data(spi_slave_regs_write_data),
+    
+    .o_state(spi_slave_state)
   );
 
+  /*
   reg         spi_regs_write_en   = 1'b0;
   reg   [5:0] spi_regs_addr       = 0;
   wire [31:0] spi_regs_read_data;
   reg  [31:0] spi_regs_write_data = 0;
+  */
 
+  reg [31:0] spi_slave_regs [31:0];
+
+  /*
   blk_mem_spi_slave_regs spi_slave_regs (
     .clka(i_clk),
     .wea(spi_slave_regs_write_en),
@@ -200,7 +207,19 @@ module top(
     .dinb(spi_regs_write_data),
     .doutb(spi_regs_read_data)
   );
+  */
+  /*
+  dist_mem_spi_slave_regs spi_slave_regs (
+    .clk(i_clk),
+    .we(spi_slave_regs_write_en),
+    .a(spi_slave_regs_addr),
+    .d(spi_slave_regs_write_data),
+    .qspo(spi_slave_regs_read_data),
 
+    .dpra(spi_regs_addr),
+    .qdpo(spi_regs_read_data)
+  );
+  */
 
   wire rasterizer_done;
   reg [$clog2(HORIZ_RESOLUTION)-1:0] triangle_point_0_x = 0;
@@ -282,8 +301,11 @@ module top(
     .doutb(vga_horiz_read_addr_crossed)
   );
 
-  // TODO: Add debouncing to rst
+  integer i;
+
+  generate
   always @(posedge i_clk) begin
+    // TODO: Add debouncing to rst
     srst_n <= i_arst_n;
 
     if(srst_n == 1'b0) begin
@@ -294,18 +316,75 @@ module top(
       triangle_point_2_x <= 0;
       triangle_point_2_y <= 0;
 
-      spi_regs_write_en   <= 1'b0;
-      spi_regs_addr       <= 0;
-      spi_regs_write_data <= 0;
+      //spi_regs_write_en   <= 1'b0;
+      //spi_regs_write_data <= 0;
+      //spi_regs_addr <= 0;
+
+
+      for (i = 0; i < 32; i = i+1) begin
+        spi_slave_regs[i] = 0;
+      end
 
       o_led <= 0;
     end else begin
-      spi_regs_write_en   <= 1'b0;
-      spi_regs_addr       <= 0;
-      spi_regs_write_data <= 0;
+      for (i = 0; i < 32; i = i+1) begin
+        spi_slave_regs[i] <= spi_slave_regs[i];
+      end
+      if(spi_slave_regs_write_en) begin
+        spi_slave_regs[spi_slave_regs_addr] <= spi_slave_regs_write_data;
+      end
 
-      o_led <= spi_slave_state;
+      triangle_point_0_x <= spi_slave_regs[0];
+      triangle_point_0_y <= spi_slave_regs[1];
+      triangle_point_1_x <= spi_slave_regs[2];
+      triangle_point_1_y <= spi_slave_regs[3];
+      triangle_point_2_x <= spi_slave_regs[4];
+      triangle_point_2_y <= spi_slave_regs[5];
 
+      //spi_regs_write_en   <= 1'b0;
+      //spi_regs_write_data <= 0;
+      
+      /*
+      triangle_point_0_x <= triangle_point_0_x;
+      triangle_point_0_y <= triangle_point_0_y;
+      triangle_point_1_x <= triangle_point_1_x;
+      triangle_point_1_y <= triangle_point_1_y;
+      triangle_point_2_x <= triangle_point_2_x;
+      triangle_point_2_y <= triangle_point_2_y;
+
+      if(spi_slave_regs_write_en) begin
+        case(spi_regs_addr)
+          0 : begin
+            triangle_point_0_x <= spi_slave_regs_write_data;
+          end
+          1 : begin
+            triangle_point_0_y <= spi_slave_regs_write_data;
+          end
+          2 : begin
+            triangle_point_1_x <= spi_slave_regs_write_data;
+          end
+          3 : begin
+            triangle_point_1_y <= spi_slave_regs_write_data;
+          end
+          4 : begin
+            triangle_point_2_x <= spi_slave_regs_write_data;
+          end
+          5 : begin
+            triangle_point_2_y <= spi_slave_regs_write_data;
+          end
+        endcase
+      end
+      */
+
+      /*
+      //data <= spi_regs_read_data;
+      triangle_point_0_x <= triangle_point_0_x;
+
+      if(spi_slave_state == 6'b000100) begin
+        triangle_point_0_x <= spi_slave_regs_read_data;
+      end
+
+      //case(spi_regs_read_data[1:0])
       case(i_sw[1:0])
         2'b00   : begin
           triangle_point_0_x <= 10;
@@ -324,12 +403,12 @@ module top(
           triangle_point_2_y <= VERT_RESOLUTION-5;
         end
         2'b10   : begin
-          triangle_point_0_x <= 3;
-          triangle_point_0_y <= 3;
-          triangle_point_1_x <= 37;
-          triangle_point_1_y <= 37;
-          triangle_point_2_x <= 7;
-          triangle_point_2_y <= 7;
+          triangle_point_0_x <= 0;
+          triangle_point_0_y <= 0;
+          triangle_point_1_x <= 0;
+          triangle_point_1_y <= 0;
+          triangle_point_2_x <= 0;
+          triangle_point_2_y <= 0;
         end
         2'b11   : begin
           triangle_point_0_x <= 10;
@@ -348,7 +427,9 @@ module top(
           triangle_point_2_y <= 50;
         end
       endcase
+      */
     end
   end
+  endgenerate
 
 endmodule

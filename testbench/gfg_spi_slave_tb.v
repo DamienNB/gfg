@@ -38,7 +38,7 @@ module gfg_spi_slave_tb ();
     .DEPTH(NUM_REGISTERS),
     .WIDTH(REGISTER_WIDTH),
     .VIVADO_ENV(0)
-  ) REGISTERS (
+  ) REGS (
     .write_clk(i_sys_clk),
     .write_en(o_reg_write_en),
     .write_addr(o_reg_addr),
@@ -361,6 +361,18 @@ module gfg_spi_slave_tb ();
     #2 $finish;
 
   end
+  
+  /*
+  wire [REGISTER_WIDTH-1:0] mem[$clog2(NUM_REGISTERS)-1:0];
+
+  genvar a;
+  generate
+  for (a = 0; a < $clog2(NUM_REGISTERS); a = a + 1) begin
+    assign memory[a] = REGISTERS.memory[a];
+  end
+  endgenerate
+  assign mem[0] = REGS.memory[0];
+  */
 
   initial begin
     $dumpfile("gfg_spi_slave_tb.lxt");
@@ -378,6 +390,38 @@ module gfg_spi_slave_tb ();
               i_reg_read_data,
               UUT.state,
               UUT.spi_mosi_shift_register,
-              UUT.shift_register_tracker);
+              UUT.shift_register_tracker,
+              /*mem[0],
+              REGISTERS.memory[1],
+              REGISTERS.memory[2],
+              REGISTERS.memory[3],
+              REGISTERS.memory[4],
+              REGISTERS.memory[5],
+              REGISTERS.memory[6],
+              REGISTERS.memory[7],
+              REGISTERS.memory[8],
+              REGISTERS.memory[9],
+              REGISTERS.memory[10],
+              REGISTERS.memory[11],
+              REGISTERS.memory[12],
+              REGISTERS.memory[13],
+              REGISTERS.memory[14],
+              REGISTERS.memory[15],
+              REGISTERS.memory[16],
+              REGISTERS.memory[17],
+              REGISTERS.memory[18],
+              REGISTERS.memory[19],
+              REGISTERS.memory[20],
+              REGISTERS.memory[21],
+              REGISTERS.memory[22],
+              REGISTERS.memory[23],
+              REGISTERS.memory[24],
+              REGISTERS.memory[25],
+              REGISTERS.memory[26],
+              REGISTERS.memory[27],
+              REGISTERS.memory[28],
+              REGISTERS.memory[29],
+              REGISTERS.memory[30],
+              REGISTERS.memory[31]*/);
   end
 endmodule
